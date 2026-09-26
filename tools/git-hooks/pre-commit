@@ -1,0 +1,15 @@
+#!/bin/sh
+# Block commits that contain subscription URLs / node credentials.
+# Enable once:  git config core.hooksPath tools/git-hooks
+P='(token|secret|password|passwd)=[A-Za-z0-9]{8,}|/link/[A-Za-z0-9]{10,}|/api/v1/client/subscribe|(vless|vmess|trojan|ss|ssr|hysteria2?|tuic|anytls)://[A-Za-z0-9]|^secret: *[^ ]|gh[pousr]_[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE KEY'
+hits=$(git diff --cached -U0 --no-color -- . ':(exclude)tools/git-hooks/*' | grep '^+' | grep -v '^+++' | grep -E "$P")
+if [ -n "$hits" ]; then
+  echo "pre-commit: 疑似订阅地址/节点凭据，已阻止提交：" >&2
+  echo "$hits" | cut -c1-120 >&2
+  echo "确认安全可用 git commit --no-verify 跳过。" >&2
+  exit 1
+fi
+# also refuse secret-bearing files even if force-added
+if git diff --cached --name-only | grep -E '(^|/)(qx-subscriptions\.local|quantumultx\.private\.conf)$|\.ya?ml$|\.bak$' ; then
+  echo "pre-commit: 以上文件不应提交（可能含订阅/节点信息）" >&2; exit 1
+fi

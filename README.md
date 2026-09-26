@@ -34,10 +34,10 @@
 
 | 层 | 组 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| 节点池 | 🇭🇰 HK / 🇹🇼 TW / 🇯🇵 JP / 🇸🇬 SG / 🇺🇸 US | fallback 120s | = [「专线」组, 「全部」组]：专线（IEPL/IPLC/专线/Premium）有可用的就用专线，全挂才用全部节点；挂了才切，出口 IP 不随延迟抖动 |
+| 节点池 | 🇭🇰 HK / 🇹🇼 TW / 🇯🇵 JP / 🇸🇬 SG / 🇺🇸 US / 🇰🇷 KR / 🇵🇭 PH | fallback 120s | = [「专线」组, 「全部」组]：专线（IEPL/IPLC/专线/Premium）有可用的就用专线，全挂才用全部节点；挂了才切，出口 IP 不随延迟抖动 |
 | 节点池 | 🇭🇰 HK 专线 / 🇭🇰 HK 全部 …（每区 2 个） | fallback 120s | 上面地区组的内部层，也可以手动选 |
 | 节点池 | ♻️ 自动选择 | url-test 300s / 容差 150ms | 全部机场节点（排除自建 VPS），只在明显更快时切换 |
-| 节点池 | 🧊 冷门节点 / 🧊 冷门自动 | select / url-test | 非五大区的机场节点（排除自建 VPS），手动挑 or 自动 |
+| 节点池 | 🧊 冷门节点 / 🧊 冷门自动 | select / url-test | 七个地区之外的机场节点（排除自建 VPS），手动挑 or 自动 |
 | 节点池 | 🏠 自建 VPS | fallback 60s | 名称以 `233boy` 开头的节点，只给 AI 用 |
 | 节点池 | 🧭 手动选择 | select | 全部节点（含自建 VPS） |
 | 兜底链 | 🔐 AI 稳定 | fallback | 自建 VPS → US → SG → JP → TW（不含 HK、不含 DIRECT） |
@@ -94,3 +94,10 @@ python3 tools/qx_gen.py --refresh   # 拉最新 geo 数据并生成 + 自校验�
 python3 tools/qx_lint.py            # 语法、策略引用、远程列表可用性、节点正则检查
 python3 tools/qx_lint.py quantumultx.private.conf --offline
 ```
+
+## 防泄露
+
+- 订阅、节点、路由器导出的配置一律不入库：`.gitignore` 已排除 `*.local`、`*.private.*`、`*.yaml/*.yml`、`*.bak`、`.env` 等。
+- 提交前扫描：`git config core.hooksPath tools/git-hooks`（本仓库已启用），发现订阅 token、`vless://` 等节点链接、
+  controller secret、GitHub token、私钥会直接阻止提交。
+- ini 里保留的自建信息只有 Tailscale DERP 直连规则（`wccczy.online` / `8.148.145.218`），这是公网服务地址、不含凭据。

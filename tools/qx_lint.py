@@ -195,7 +195,8 @@ SAMPLES = {
     "🇭🇰 香港 01": "🇭🇰 HK", "HK-IEPL-02": "🇭🇰 HK", "Hong Kong 03 | x2": "🇭🇰 HK", "香港HKT": "🇭🇰 HK",
     "🇹🇼 台湾 Hinet": "🇹🇼 TW", "TW 01": "🇹🇼 TW", "🇯🇵 日本 Tokyo": "🇯🇵 JP", "JP-Osaka": "🇯🇵 JP",
     "🇸🇬 新加坡 01": "🇸🇬 SG", "SG | Singapore": "🇸🇬 SG", "🇺🇸 美国 Los Angeles": "🇺🇸 US", "US-SJC": "🇺🇸 US",
-    "🇩🇪 德国 01": "🧊 冷门节点", "🇬🇧 UK London": "🧊 冷门节点", "🇰🇷 韩国 首尔": "🧊 冷门节点",
+    "🇩🇪 德国 01": "🧊 冷门节点", "🇬🇧 UK London": "🧊 冷门节点", "🇰🇷 韩国 首尔": "🇰🇷 KR",
+    "🇰🇷|韩国家宽-IEPL 01": "🇰🇷 KR", "殊-菲律宾 *NF | x1": "🇵🇭 PH", "PH Manila 02": "🇵🇭 PH", "殊-印尼 | x1": "🧊 冷门节点",
     "剩余流量：100G": None, "套餐到期：2026-01-01": None, "官网 https://x.y": None, "Traffic Reset: 3 days": None,
     "香港节点 01": "🇭🇰 HK", "ATLS 日本-05 | x1 *原生": "🇯🇵 JP", "IEPL 新加坡-01 *稳定奈飞 | x1": "🇸🇬 SG",
     "殊-加拿大 | x1": "🧊 冷门节点", "注：若无法使用请【更新订阅】": None, "EXPIRE: 2026-10-01": None,
@@ -211,7 +212,7 @@ if VPS_POOL in policies:
     hit = sorted(n for n, r in rx.items() if re.search(r, VPS_SAMPLE))
     if hit != sorted([VPS_POOL, "🧭 手动选择"]):
         err(members[VPS_POOL][0], f"VPS node {VPS_SAMPLE!r} lands in {hit}")
-region = ["🇭🇰 HK", "🇹🇼 TW", "🇯🇵 JP", "🇸🇬 SG", "🇺🇸 US", "🧊 冷门节点"]
+region = ["🇭🇰 HK", "🇹🇼 TW", "🇯🇵 JP", "🇸🇬 SG", "🇺🇸 US", "🇰🇷 KR", "🇵🇭 PH", "🧊 冷门节点"]
 for node, want in SAMPLES.items():
     hits = [g for g in region if g in policies and re.search(policies[g][1]["server-tag-regex"], node)]
     manual = re.search(policies["🧭 手动选择"][1]["server-tag-regex"], node) if "🧭 手动选择" in policies else None
