@@ -461,6 +461,9 @@ class QX:
 # ----------------------------------------------------------------------------- build
 def build():
     rules, groups, exclude = parse_ini()
+    if len(rules) > 64:
+        raise SystemExit(f"ruleset 共 {len(rules)} 条，超过转换后端 max_allowed_rulesets=64："
+                         f"后端会整份忽略本模板、退回默认模板")
     check_cold_group(groups)
     group_names = {g["name"] for g in groups}
     notes = []
