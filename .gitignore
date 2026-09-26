@@ -1,0 +1,7 @@
+tools/.cache/
+__pycache__/
+
+# 含机场订阅地址，勿提交
+qx-subscriptions.local
+quantumultx.private.conf
+.DS_Store
