@@ -238,15 +238,29 @@ def check_cold_group(groups):
         extra = [a for a in got if a not in want]
         if missing or extra:
             raise SystemExit(f"ini:{c['ln']} {c['name']} 与地区组正则不同步：缺少 {missing}，多余 {extra}")
-    # every premium-first regex must be "premium AND <that group's own region regex>"
+    # every premium-first regex must be "premium AND <one of the region regexes>"
+    region_bodies = {strip_flags(r) for _, r in regions}
     for g in groups:
-        plain = [r for r in g["regexes"] if strip_flags(r).startswith("(") and not strip_flags(r).startswith("(?")]
         for r in g["regexes"]:
             b = strip_flags(r)
-            if b.startswith("^(?=") and plain and not b.endswith(f"(?=.*{strip_flags(plain[0])})"):
-                raise SystemExit(f"ini:{g['ln']} {g['name']} 的专线正则与该组地区正则不一致")
+            if b.startswith("^(?=") and not any(b.endswith(f"(?=.*{rb})") for rb in region_bodies):
+                raise SystemExit(f"ini:{g['ln']} {g['name']} 的专线正则末尾必须是某个「全部」组的地区正则")
+    check_provider_mode(groups)
     check_private_nodes(groups, cold)
     return len(cold)
+
+
+def check_provider_mode(groups):
+    """OpenClash's default backend (SubConverter-Extended) turns every regex group into
+    `use: <provider>` + `filter: <FIRST regex only>`, and mihomo puts a group's `proxies:` in
+    FRONT of provider nodes. So a regex group may carry exactly one regex and no named members."""
+    for g in groups:
+        if len(g["regexes"]) > 1:
+            raise SystemExit(f"ini:{g['ln']} {g['name']}：一个组只能写一段正则（provider 模式只保留第一段），"
+                             f"需要优先级就拆成嵌套组")
+        if g["regexes"] and g["members"]:
+            raise SystemExit(f"ini:{g['ln']} {g['name']}：正则组里不能再放 {g['members']}"
+                             f"（provider 模式下会排到节点前面，成为默认选项）")
 
 
 COLD_RE = re.compile(r"^\^(?:\(\?!\.\*[^()|]+\))*\(\?!\.\*\(")
@@ -696,6 +710,12 @@ def policy_lines(groups, exclude):
                              f"check-interval={g['interval']}, tolerance={g['tolerance']}, alive-checking=false")
         elif g["type"] == "select":
             lines.append(f"static={n}, " + ", ".join(mem))
+        elif g["type"] == "fallback" and all(m in by and by[m]["regexes"] and not by[m]["members"] for m in mem):
+            # fallback over pure-regex pools (e.g. 🇭🇰 HK = [HK 专线, HK 全部]): QX can't nest, but
+            # "available" over the union of their regexes keeps automatic in-region failover
+            # (ordering follows the subscription instead of 专线-first).
+            rx = group_regex([r for m in mem for r in by[m]["regexes"]], exclude)
+            lines.append(f"available={n}, server-tag-regex={rx}")
         elif g["type"] == "fallback":
             # QX "available" may only contain servers, not other policies -> static, default = first.
             # A private pool (self-hosted VPS) may not be imported on the phone and an empty QX policy

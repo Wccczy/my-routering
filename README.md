@@ -34,10 +34,11 @@
 
 | 层 | 组 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| 节点池 | 🇭🇰 HK / 🇹🇼 TW / 🇯🇵 JP / 🇸🇬 SG / 🇺🇸 US | fallback 120s | 专线（IEPL/IPLC/专线/Premium）优先，挂了才切，出口 IP 不随延迟抖动；末尾 `REJECT` 防止空组变 DIRECT |
+| 节点池 | 🇭🇰 HK / 🇹🇼 TW / 🇯🇵 JP / 🇸🇬 SG / 🇺🇸 US | fallback 120s | = [「专线」组, 「全部」组]：专线（IEPL/IPLC/专线/Premium）有可用的就用专线，全挂才用全部节点；挂了才切，出口 IP 不随延迟抖动 |
+| 节点池 | 🇭🇰 HK 专线 / 🇭🇰 HK 全部 …（每区 2 个） | fallback 120s | 上面地区组的内部层，也可以手动选 |
 | 节点池 | ♻️ 自动选择 | url-test 300s / 容差 150ms | 全部机场节点（排除自建 VPS），只在明显更快时切换 |
 | 节点池 | 🧊 冷门节点 / 🧊 冷门自动 | select / url-test | 非五大区的机场节点（排除自建 VPS），手动挑 or 自动 |
-| 节点池 | 🏠 自建 VPS | fallback 60s | 名称以 `233boy` 开头的节点，只给 AI 用；末尾 `REJECT` 防止没有 VPS 时变 DIRECT |
+| 节点池 | 🏠 自建 VPS | fallback 60s | 名称以 `233boy` 开头的节点，只给 AI 用 |
 | 节点池 | 🧭 手动选择 | select | 全部节点（含自建 VPS） |
 | 兜底链 | 🔐 AI 稳定 | fallback | 自建 VPS → US → SG → JP → TW（不含 HK、不含 DIRECT） |
 | 兜底链 | 🌐 Default | fallback | HK → JP → SG → TW → US → 🧊 冷门自动 |
@@ -48,6 +49,10 @@
 
 - **多订阅**：OpenClash 订阅转换里一行一个地址，合并为一个配置。重名节点 subconverter 会自动加 ` 2` 后缀；
   同地区同线路按订阅顺序排列，所以**最稳定的机场放第一行**。
+- **转换后端的限制（重要）**：OpenClash 默认后端 `api.asailor.org`（SubConverter-Extended）遇到订阅链接会生成
+  `proxy-providers`，每个正则组变成 `use: 订阅` + `filter: 第一段正则`，并把组里的 `[]成员` 排到订阅节点**前面**。
+  所以本 ini 里**一个正则组只写一段正则、不混放 `[]` 成员**；需要优先级时拆成嵌套组（如「专线」+「全部」）。
+  组为空时 mihomo 自动填 `COMPATIBLE`（不可用、不会直连）。`qx_gen.py` 会校验这两条约束。
 - **不要用 load-balance**：同一网站多出口 IP 会触发风控；池内节点挂掉时被分到它的站点全部失败，直到下次健康检查。
 - **可选 Smart 内核**：OpenClash「Smart 设置」开启后会把所有 url-test/load-balance 组（本配置只有 ♻️ 自动选择、
   🧊 冷门自动）替换为 smart 组；fallback 组不受影响。
