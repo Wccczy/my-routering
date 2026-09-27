@@ -690,6 +690,21 @@ def policy_lines(groups, exclude):
         visit(g["name"])
     urls = [g["url"] for g in groups if g["type"] != "select"]
     check_url = max(set(urls), key=urls.count) if urls else "http://www.gstatic.com/generate_204"
+    def nested_regexes(n, stack=frozenset()):
+        """Collect leaf node regexes behind a named group; None means a builtin/mixed leaf."""
+        if n in stack or n not in by:
+            return None
+        h = by[n]
+        if h["regexes"]:
+            return list(h["regexes"])
+        out = []
+        for m in h["members"]:
+            rs = nested_regexes(m, stack | {n})
+            if rs is None:
+                return None
+            out.extend(rs)
+        return out or None
+
     lines = []
     for n in order:
         g = by[n]
@@ -719,6 +734,13 @@ def policy_lines(groups, exclude):
             # (ordering follows the subscription instead of 专线-first).
             rx = group_regex([r for m in mem for r in by[m]["regexes"]], exclude)
             lines.append(f"available={n}, server-tag-regex={rx}")
+        elif g["type"] == "url-test" and mem and (flat := nested_regexes(n)):
+            # QX cannot benchmark named policy groups. Flatten their leaf region regexes so the
+            # QX version remains automatic (it tests matching nodes directly, unlike Clash).
+            QX_NOTES.append(f"{n}：Clash 只测速 {len(mem)} 个地区组；QX 不支持测速嵌套策略组，改为直接测速这些地区的节点")
+            rx = group_regex(flat, exclude)
+            lines.append(f"url-latency-benchmark={n}, server-tag-regex={rx}, "
+                         f"check-interval={g['interval']}, tolerance={g['tolerance']}, alive-checking=false")
         elif g["type"] == "fallback":
             # QX "available" may only contain servers, not other policies -> static, default = first.
             # A private pool (self-hosted VPS) may not be imported on the phone and an empty QX policy
