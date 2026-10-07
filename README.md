@@ -3,6 +3,7 @@
 | 文件 | 用途 |
 | --- | --- |
 | `openclash-rules.ini` | OpenClash / subconverter 用的分流模板（源头，改规则只改这里） |
+| `openclash-rules-small.ini` | 🪶 低内存路由器专用精简模板（480MB 设备防 OOM，见文件头注；策略组与全量版一致，仅砍大规则集） |
 | `quantumultx.conf` | **Quantumult X 完整配置**（不含订阅，可公开），由脚本从 ini 生成 |
 | `qx-subscriptions.local` | 机场订阅地址，每行一个（**gitignore，勿提交**） |
 | `quantumultx.private.conf` | 带订阅的 QX 配置，存在 `qx-subscriptions.local` 时生成（**gitignore，勿提交**） |
