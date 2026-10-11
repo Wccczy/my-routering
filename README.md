@@ -147,7 +147,9 @@ curl -s -H "$A" "$C/group/$G/delay?timeout=8000&url=https%3A%2F%2Fcp.cloudflare.
   - 若 ini 里有规则写在 `MATCH` 之后（Clash 中永不生效），生成器会把它前移到 GFW 兜底之前并在配置头部提示。
 - 策略组名中带不可见字符（U+FE0F 变体选择符 / U+200D 连接符）的已改名，避免在 App 内编辑或复制后“找不到策略”：
   `✈️ Cathay Pacific→🛫 Cathay Pacific`、`☁️ cloudflare→⛅ Cloudflare`、`🧑‍💻 GitHub→🐙 GitHub`、`♻️ 自动选择→🔄 自动选择`。
-- url-test 组对应 `url-latency-benchmark`（间隔/容差同 ini），测速地址统一为 `server_check_url`。
+- url-test 组对应 `url-latency-benchmark`，间隔/容差同上表；`server_check_url` / `server_check_timeout`
+  取 ini 中非 select 组的众数（现在是 `https://cp.cloudflare.com/generate_204` 与 10000ms，即 `600,10` 里的 10 秒）。
+  注意 QX 只有**一个**全局测速地址，所以 Clash 里「AI 组保留 gstatic」的例外在 QX 无法表达。
 - fallback 地区组对应 `available`，但 QX 按订阅顺序选第一个可用节点，**无法做到“专线优先”**。
 - QX 的 `available` 不能嵌套策略组，所以 🔐 AI 稳定、🌐 Default 在 QX 里是 static（默认 US / HK），
   地区内仍会自动换节点，但跨地区兜底需要手动切。🏠 自建 VPS 在 QX 里排在 AI 稳定的最后

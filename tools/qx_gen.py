@@ -186,6 +186,8 @@ def parse_ini():
                 body, g["url"], times = body[:-2], body[-2], body[-1]
                 interval, _timeout, tol = (times.split(",") + ["", "", ""])[:3]
                 g["interval"], g["tolerance"] = int(interval or 300), int(tol or 0)
+                g["timeout"] = int(_timeout or 0)   # 秒；subconverter 不会写进 Clash，
+                                                    # 但 QX 的 server_check_timeout（毫秒）用它
             g["members"] = [fix_name(m[2:]) for m in body if m.startswith("[]")]
             g["regexes"] = [m for m in body if not m.startswith("[]")]
             groups.append(g)
@@ -690,6 +692,9 @@ def policy_lines(groups, exclude):
         visit(g["name"])
     urls = [g["url"] for g in groups if g["type"] != "select"]
     check_url = max(set(urls), key=urls.count) if urls else "http://www.gstatic.com/generate_204"
+    tos = [g["timeout"] for g in groups if g["type"] != "select" and g.get("timeout")]
+    # ini 里 timeout 的单位是秒（subconverter 会丢弃它），QX 的 server_check_timeout 是毫秒
+    check_timeout = max(set(tos), key=tos.count) * 1000 if tos else 5000
     def nested_regexes(n, stack=frozenset()):
         """Collect leaf node regexes behind a named group; None means a builtin/mixed leaf."""
         if n in stack or n not in by:
@@ -752,7 +757,7 @@ def policy_lines(groups, exclude):
             lines.append(f"static={n}, " + ", ".join(qmem))
         else:
             raise ValueError(f"group {n}: url-test with only named members unsupported in QX")
-    return lines, check_url
+    return lines, check_url, check_timeout
 
 
 # ----------------------------------------------------------------------------- emit
@@ -838,7 +843,7 @@ def load_subs():
 
 def render(B, subs=None):
     QX_NOTES.clear()
-    pol_lines, check_url = policy_lines(B["groups"], B["exclude"])
+    pol_lines, check_url, check_timeout = policy_lines(B["groups"], B["exclude"])
     now = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     L = []
     w = L.append
@@ -857,7 +862,7 @@ def render(B, subs=None):
     w("[general]")
     w("network_check_url=http://connect.rom.miui.com/generate_204")
     w(f"server_check_url={check_url}")
-    w("server_check_timeout=5000")
+    w(f"server_check_timeout={check_timeout}")
     w("resource_parser_url=https://raw.githubusercontent.com/KOP-XIAO/QuantumultX/master/Scripts/resource-parser.js")
     w("dns_exclusion_list=*.cmpassport.com, *.jegotrip.com.cn, *.icitymobile.mobi, id6.me, *.lan, *.local, *.ts.net")
     w("fallback_udp_policy=reject")
