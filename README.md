@@ -35,14 +35,14 @@
 
 | 层 | 组 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| 节点池 | 🇭🇰 HK / 🇹🇼 TW / 🇯🇵 JP / 🇸🇬 SG / 🇺🇸 US / 🇰🇷 KR / 🇵🇭 PH | fallback 300s | = [「专线」组, 「全部」组]：专线（IEPL/IPLC/专线/Premium）有可用的就用专线，全挂才用全部节点；挂了才切，出口 IP 不随延迟抖动 |
-| 节点池 | 🇭🇰 HK 专线 / 🇭🇰 HK 全部 …（每区 2 个） | fallback 300s | 上面地区组的内部层，也可以手动选 |
-| 节点池 | ♻️ 自动选择 | url-test 300s / 容差 150ms | 只测速 7 个地区组，不再直接测速全部节点；只在地区间明显更快时切换 |
+| 节点池 | 🇭🇰 HK / 🇹🇼 TW / 🇯🇵 JP / 🇸🇬 SG / 🇺🇸 US / 🇰🇷 KR / 🇵🇭 PH | fallback 600s | = [「专线」组, 「全部」组]：专线（IEPL/IPLC/专线/Premium）有可用的就用专线，全挂才用全部节点；挂了才切，出口 IP 不随延迟抖动 |
+| 节点池 | 🇭🇰 HK 专线 / 🇭🇰 HK 全部 …（每区 2 个） | fallback 600s | 上面地区组的内部层，也可以手动选 |
+| 节点池 | ♻️ 自动选择 | url-test 600s / 容差 300ms | 只测速 7 个地区组，不再直接测速全部节点；只在地区间明显更快时切换 |
 | 节点池 | 🧊 冷门节点 / 🧊 冷门自动 | select / url-test | 七个地区之外的机场节点（排除自建 VPS），手动挑 or 自动 |
-| 节点池 | 🏠 自建 VPS | fallback 300s | 名称以 `CF-WS` 开头的节点，只给 AI 用 |
+| 节点池 | 🏠 自建 VPS | fallback 600s | 名称以 `CF-WS` 开头的节点，只给 AI 用 |
 | 节点池 | 🧭 手动选择 | select | 全部节点（含自建 VPS） |
-| 兜底链 | 🔐 AI 稳定 | fallback 300s | 自建 VPS → US → SG → JP → TW（不含 HK、不含 DIRECT） |
-| 兜底链 | 🌐 Default | fallback 300s | HK → JP → SG → TW → US → KR → PH → 🧊 冷门自动 |
+| 兜底链 | 🔐 AI 稳定 | fallback 600s | 自建 VPS → US → SG → JP → TW（不含 HK、不含 DIRECT） |
+| 兜底链 | 🌐 Default | fallback 600s | HK → JP → SG → TW → US → KR → PH → 🧊 冷门自动 |
 | 应用 | AI、ChatGPT | select | 默认 🔐 AI 稳定（VPS 优先、挂了自动落到机场 US）；也可直接选 🏠 自建 VPS 或 🧭 手动选择 |
 | 应用 | Google、YouTube、X、Instagram、TikTok、GitHub、Apple | select | 默认地区稳定组（TikTok 默认 JP） |
 | 应用 | 其余代理类 / 🚀 代理兜底 / 🐟 漏网之鱼 | select | 默认 ♻️ 自动选择 |
