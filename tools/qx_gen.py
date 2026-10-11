@@ -264,7 +264,7 @@ def check_provider_mode(groups):
 
 
 COLD_RE = re.compile(r"^\^(?:\(\?!\.\*[^()|]+\))*\(\?!\.\*\(")
-PRIVATE_RE = re.compile(r"^\^([A-Za-z0-9_-]+)$")          # e.g. (?i)^233boy -> self-hosted node prefix
+PRIVATE_RE = re.compile(r"^\^([A-Za-z0-9_-]+)$")          # e.g. (?i)^CF-WS -> self-hosted node prefix
 
 
 def check_private_nodes(groups, cold):

@@ -206,7 +206,7 @@ for g in ("🇭🇰 HK", "🇹🇼 TW", "🇯🇵 JP", "🇸🇬 SG", "🇺🇸 
     if g in policies and policies[g][0] not in ("available", "url-latency-benchmark"):
         err(members[g][0], f"{g} should be an automatic (available/url-latency-benchmark) policy")
 # self-hosted VPS: only in its own pool + manual, never in auto / cold / region pools
-VPS_SAMPLE, VPS_POOL = "233boy-reality-203.0.113.9", "🏠 自建 VPS"
+VPS_SAMPLE, VPS_POOL = "CF-WS-443", "🏠 自建 VPS"
 if VPS_POOL in policies:
     rx = {n: p[1]["server-tag-regex"] for n, p in policies.items() if "server-tag-regex" in p[1]}
     hit = sorted(n for n, r in rx.items() if re.search(r, VPS_SAMPLE))
