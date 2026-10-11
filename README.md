@@ -9,6 +9,7 @@
 | `quantumultx.private.conf` | 带订阅的 QX 配置，存在 `qx-subscriptions.local` 时生成（**gitignore，勿提交**） |
 | `tools/qx_gen.py` | 生成器：`python3 tools/qx_gen.py [--refresh]` |
 | `tools/qx_lint.py` | 独立语法/引用检查：`python3 tools/qx_lint.py [文件] [--offline]` |
+| `router/openclash_custom_overwrite.sh` | 路由器侧覆写钩子的存档版（关闭 provider 级健康检查，见下文「路由器侧」；改完要同步到 `/etc/openclash/custom/`） |
 
 ## 导入 Quantumult X
 
@@ -57,6 +58,75 @@
 - **不要用 load-balance**：同一网站多出口 IP 会触发风控；池内节点挂掉时被分到它的站点全部失败，直到下次健康检查。
 - **可选 Smart 内核**：OpenClash「Smart 设置」开启后会把所有 url-test/load-balance 组（本配置只有 ♻️ 自动选择、
   🧊 冷门自动）替换为 smart 组；fallback 组不受影响。
+
+## 路由器侧（OpenClash 0.47.156 / iStoreOS）
+
+本 ini 只覆盖**策略组**；OpenClash 自身还会改写一部分参数。踩过的坑记在这里，避免重复取证。
+
+### 1. 「覆写设置」三项必须留空（=0）
+
+`/usr/share/openclash/yml_rules_change.sh` 每次生成配置时，会把**所有** url-test/fallback/load-balance 组的
+`url`/`interval`/`tolerance`、以及**所有** provider 的 `health-check.url`/`interval`，覆盖成「覆写设置」里的值：
+
+| uci key | 旧值 | 现值 |
+| --- | --- | --- |
+| `openclash.config.urltest_address_mod` | `https://www.gstatic.com/generate_204` | `0`（空） |
+| `openclash.config.urltest_interval_mod` | `300` | `0`（空） |
+| `openclash.config.tolerance` | `150` | `0`（空） |
+
+只要非 0，ini 里的测速地址/间隔/容差就是「装饰品」（2026-10-10 改完 ini、更新订阅却毫无变化，原因即此）。
+查当前值：`uci show openclash | grep -E "urltest|tolerance"`。
+另外：`custom_proxy_group` 里 interval 后的 **timeout 值 subconverter 不会写进配置**（生成的 yaml 里
+`timeout:` 计数为 0），实际超时是内核默认值——`600,10` 的 `10` 是无效的。
+
+### 2. provider（订阅）级健康检查已在路由器上关闭
+
+ini 管不到 `proxy-providers.health-check`（由转换后端写成 gstatic + 300s + 5s 超时）。而它在这台路由器上
+**会把大量可用节点误判成 Down**：
+
+- 2026-10-11 实测：209 个节点里 138 个被判失败（66%）。
+- 抽 16 个「被判死」节点复测：11 个 cf/8s 通、7 个 gstatic/5s 通、**0 个两种都不通**。
+- 节点历史里到处是 `0,0,0,0,0,0,0,46,0,0` 这种「只成功一次」的形态；真死节点不可能偶尔干净成功 46ms。
+- 放宽为 cloudflare + 600s + 10s 后仍 83/83 失败，而同一时刻**组级检查 31/31 通过** →
+  判定是批量测速风暴自身造成的假死（机场节点名里也写着"批量测试可能导致 GFW 干扰连接"）。
+
+处理：`router/openclash_custom_overwrite.sh`（存档版）落到 `/etc/openclash/custom/openclash_custom_overwrite.sh`，
+即 OpenClash 官方钩子（在它自己脚本之后运行），把 provider 的 `health-check.enable` 改为 `false`；
+`url/interval/timeout` 仍写成 cloudflare/600s/10s，将来若重新开启也不会退回 gstatic/5s。
+组级检查（600s / cloudflare）照常负责可用性判定。
+
+```sh
+scp router/openclash_custom_overwrite.sh root@192.168.100.1:/etc/openclash/custom/openclash_custom_overwrite.sh
+ssh root@192.168.100.1 'chmod +x /etc/openclash/custom/openclash_custom_overwrite.sh;
+  sh -n /etc/openclash/custom/openclash_custom_overwrite.sh &&
+  rm -f /tmp/openclash.change && /etc/init.d/openclash restart'
+# 生效验证：日志出现 "Tip: Provider Health-Check Disabled (blocks: N, disabled: N)"，
+# 且生成的 yaml 里 5 个 provider 都是 enable: false
+```
+
+> 覆写脚本会作用于**每个** provider，所以新增订阅也自动生效；改完 ini 只需在面板更新订阅，
+> 不用再动路由器。
+
+### 3. 排查命令（mihomo API，secret 见生成的 yaml）
+
+```sh
+A="Authorization: Bearer <secret>"; C=http://192.168.100.1:9090
+# 各 provider 节点数与「最近一次失败」数
+curl -s -H "$A" $C/providers/proxies | jq '.providers | to_entries[] | select(.value.vehicleType=="HTTP")
+  | [.key, (.value.proxies|length), ([.value.proxies[]|select(((.history|last|.delay)//0)==0)]|length)]'
+# 用指定 URL 强制复测某组全部成员（会刷新节点状态，可把 fallback 从死节点上挪开）
+G=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=""))' '🇹🇼 TW 全部')
+curl -s -H "$A" "$C/group/$G/delay?timeout=8000&url=https%3A%2F%2Fcp.cloudflare.com%2Fgenerate_204"
+```
+
+`cache.db`（`/etc/openclash/history/<配置名>.db`）会持久化节点状态与手动选择：重启/更新后可能带着旧的
+「dead」标记或旧的手动选择（例如 `🍎 Apple` / `🔎 Google` 被固定在 `🇹🇼 TW`），必要时用上面的 `/group/.../delay` 刷一次。
+
+### 4. 已知残留问题（属真实故障，不是误杀）
+
+- `Provider_B10CBD`（`nvenix.shop` 订阅）长期拉到 0 个节点，日志报 `net/http: TLS handshake timeout`。
+- `🇹🇼 TW 专线` 整池（如 `IEPL 台湾-01 | x1`，服务器 `twdx1.cdnflow.help:9378`）曾整段时间全部超时，
+  组级 fallback 会自动落到 `🇹🇼 TW 全部`；这类问题只能等机场修或手动换地区。
 
 ## 与 Clash 版的对应关系 / 差异
 
