@@ -156,7 +156,9 @@ LOG_OUT "Tip: Provider names normalized (ATLS/Sabusuku/Nvenix/Kitty/Alink)"
 # Run after subscription conversion on every start/reload; do not depend on a Git push.
 POLICY_DIR="/etc/openclash/custom"
 if [ "$(basename "$CONFIG_FILE")" = "sum-air.yaml" ]; then
-   if ruby "$POLICY_DIR/openclash_policy.rb" apply "$CONFIG_FILE" "$POLICY_DIR/my-routering-policy.ini" >> "$LOG_FILE" 2>&1; then
+   # 输出进策略核验日志,勿写 $LOG_FILE(/tmp/openclash.log 是内核日志,
+   # LuCI 解析不了裸行会显示成「严重错误」)。
+   if ruby "$POLICY_DIR/openclash_policy.rb" apply "$CONFIG_FILE" "$POLICY_DIR/my-routering-policy.ini" >> /tmp/openclash-policy-audit.log 2>&1; then
       LOG_OUT "Tip: Strict AI policy and empty-pool protection applied"
       # The hook runs before core startup. Only read the API; never repair selections here.
       ruby "$POLICY_DIR/openclash_policy.rb" audit "/etc/openclash/sum-air.yaml" \
