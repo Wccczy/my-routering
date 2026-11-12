@@ -144,4 +144,28 @@ CONFIG_FILE="$1"
     fi
 ruby_edit "$CONFIG_FILE" "['external-controller']" "'192.168.100.1:9090'"
 ip link set dev utun mtu 1492 2>/dev/null
+
+# Preserve the provider-name normalization already installed on the gateway.
+for OC_CFG in "$CONFIG_FILE" "/etc/openclash/config/sum-air.yaml"; do
+   if [ -f "$OC_CFG" ]; then
+      sed -i -e 's/Provider_832B29/ATLS/g' -e 's/Provider_BA2973/Sabusuku/g' -e 's/Provider_FD32DB/Nvenix/g' -e 's/Provider_8AC268/Kitty/g' -e 's/Provider_206757/Alink/g' "$OC_CFG"
+   fi
+done
+LOG_OUT "Tip: Provider names normalized (ATLS/Sabusuku/Nvenix/Kitty/Alink)"
+
+# Run after subscription conversion on every start/reload; do not depend on a Git push.
+POLICY_DIR="/etc/openclash/custom"
+if [ "$(basename "$CONFIG_FILE")" = "sum-air.yaml" ]; then
+   if ruby "$POLICY_DIR/openclash_policy.rb" apply "$CONFIG_FILE" "$POLICY_DIR/my-routering-policy.ini" >> "$LOG_FILE" 2>&1; then
+      LOG_OUT "Tip: Strict AI policy and empty-pool protection applied"
+      # The hook runs before core startup. Only read the API; never repair selections here.
+      ruby "$POLICY_DIR/openclash_policy.rb" audit "/etc/openclash/sum-air.yaml" \
+         "$POLICY_DIR/my-routering-policy.ini" 60 > /tmp/openclash-policy-audit.log 2>&1 &
+   else
+      LOG_OUT "Error: Strict AI policy failed; refuse to load unprotected configuration"
+      # OpenClash does not check this hook's exit code. Remove its candidate from the load path.
+      mv "$CONFIG_FILE" "$CONFIG_FILE.policy-rejected"
+      exit 1
+   fi
+fi
 exit 0

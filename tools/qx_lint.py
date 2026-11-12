@@ -205,13 +205,22 @@ SAMPLES = {
 for g in ("🇭🇰 HK", "🇹🇼 TW", "🇯🇵 JP", "🇸🇬 SG", "🇺🇸 US"):
     if g in policies and policies[g][0] not in ("available", "url-latency-benchmark"):
         err(members[g][0], f"{g} should be an automatic (available/url-latency-benchmark) policy")
-# self-hosted VPS: only in its own pool + manual, never in auto / cold / region pools
+# self-hosted VPS: its exact-name pool and manual, never auto/cold/region regex pools
 VPS_SAMPLE, VPS_POOL = "CF-WS-443", "🏠 自建 VPS"
 if VPS_POOL in policies:
     rx = {n: p[1]["server-tag-regex"] for n, p in policies.items() if "server-tag-regex" in p[1]}
     hit = sorted(n for n, r in rx.items() if re.search(r, VPS_SAMPLE))
     if hit != sorted([VPS_POOL, "🧭 手动选择"]):
         err(members[VPS_POOL][0], f"VPS node {VPS_SAMPLE!r} lands in {hit}")
+    ai_rx = rx.get(VPS_POOL, "")
+    for sample in list(SAMPLES) + ["CF-WS-443-extra", "CF-WS-other", "prefix-CF-WS-443"]:
+        if ai_rx and re.search(ai_rx, sample):
+            err(0, f"VPS whitelist unexpectedly admits {sample!r}")
+if members.get("🔐 AI 稳定", (0, []))[1] != [VPS_POOL, "🇸🇬 SG", "🇯🇵 JP", "🇺🇸 US"]:
+    err(0, "AI fallback must only offer VPS, SG, JP, US in order")
+for name in ("🧠 AI", "🤖 ChatGPT"):
+    if name in members and members[name][1] != ["🔐 AI 稳定", "reject"]:
+        err(members[name][0], f"{name}: strict AI must only offer its whitelist and reject")
 region = ["🇭🇰 HK", "🇹🇼 TW", "🇯🇵 JP", "🇸🇬 SG", "🇺🇸 US", "🇰🇷 KR", "🇵🇭 PH", "🧊 冷门节点"]
 for node, want in SAMPLES.items():
     hits = [g for g in region if g in policies and re.search(policies[g][1]["server-tag-regex"], node)]

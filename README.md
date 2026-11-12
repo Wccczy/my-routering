@@ -9,7 +9,12 @@
 | `quantumultx.private.conf` | 带订阅的 QX 配置，存在 `qx-subscriptions.local` 时生成（**gitignore，勿提交**） |
 | `tools/qx_gen.py` | 生成器：`python3 tools/qx_gen.py [--refresh]` |
 | `tools/qx_lint.py` | 独立语法/引用检查：`python3 tools/qx_lint.py [文件] [--offline]` |
+| `clash-verge.yaml` | Clash Verge (Rev) 全局扩展配置（Merge），由脚本从 ini 生成，桌面端用全量规则 |
+| `tools/verge_gen.py` | 生成器：`python3 tools/verge_gen.py`（改规则仍只改 ini，再重跑） |
 | `router/openclash_custom_overwrite.sh` | 路由器侧覆写钩子的存档版（关闭 provider 级健康检查，见下文「路由器侧」；改完要同步到 `/etc/openclash/custom/`） |
+| `router/openclash_policy.rb` | 两版共用的策略覆写及只读核验，精简版使用 `apply-small` / `audit-small` |
+| `router/openclash_small_overwrite.sh` | 小路由器专用钩子，不设置大网关的 IP/MTU；需在目标设备另行安装 |
+| `tools/test_openclash_policy.rb` | 白名单、空组、幂等性、规则优先级及运行核验回归测试 |
 
 ## 导入 Quantumult X
 
@@ -40,11 +45,12 @@
 | 节点池 | 🇭🇰 HK 专线 / 🇭🇰 HK 全部 …（每区 2 个） | fallback 600s | 上面地区组的内部层，也可以手动选 |
 | 节点池 | ♻️ 自动选择 | url-test 600s / 容差 300ms | 只测速 7 个地区组，不再直接测速全部节点；只在地区间明显更快时切换 |
 | 节点池 | 🧊 冷门节点 / 🧊 冷门自动 | select / url-test | 七个地区之外的机场节点（排除自建 VPS），手动挑 or 自动 |
-| 节点池 | 🏠 自建 VPS | fallback 600s | 名称以 `CF-WS` 开头的节点，只给 AI 用 |
+| 节点池 | 🏠 自建 VPS | fallback 600s | 精确节点白名单，当前 `CF-WS-443` |
 | 节点池 | 🧭 手动选择 | select | 全部节点（含自建 VPS） |
-| 兜底链 | 🔐 AI 稳定 | fallback 600s | 自建 VPS → US → SG → JP → TW（不含 HK、不含 DIRECT） |
+| 专用出口 | 🔐 AI 稳定 | fallback 600s | VPS → 新加坡 → 日本 → 美国；地区内专线优先，空组 REJECT，不直连 |
 | 兜底链 | 🌐 Default | fallback 600s | HK → JP → SG → TW → US → KR → PH → 🧊 冷门自动 |
-| 应用 | AI、ChatGPT | select | 默认 🔐 AI 稳定（VPS 优先、挂了自动落到机场 US）；也可直接选 🏠 自建 VPS 或 🧭 手动选择 |
+| 应用 | AI、ChatGPT | select | 仅 🔐 AI 稳定 / REJECT，出口链只包含 VPS、SG、JP、US，不引用其他通用池 |
+| 应用 | 游戏下载 | select | 默认 DIRECT，下载 CDN 异常时可手动切代理 |
 | 应用 | Google、YouTube、X、Instagram、TikTok、GitHub、Apple | select | 默认地区稳定组（TikTok 默认 JP） |
 | 应用 | 其余代理类 / 🚀 代理兜底 / 🐟 漏网之鱼 | select | 默认 ♻️ 自动选择 |
 | 应用 | 测速、Steam、Microsoft | select | 默认 DIRECT |
@@ -54,14 +60,53 @@
 - **转换后端的限制（重要）**：OpenClash 默认后端 `api.asailor.org`（SubConverter-Extended）遇到订阅链接会生成
   `proxy-providers`，每个正则组变成 `use: 订阅` + `filter: 第一段正则`，并把组里的 `[]成员` 排到订阅节点**前面**。
   所以本 ini 里**一个正则组只写一段正则、不混放 `[]` 成员**；需要优先级时拆成嵌套组（如「专线」+「全部」）。
-  组为空时 mihomo 自动填 `COMPATIBLE`（不可用、不会直连）。`qx_gen.py` 会校验这两条约束。
+  组为空时默认的 `COMPATIBLE` 实际是直连；全量版路由器覆写为 `empty-fallback: REJECT`。
+  `qx_gen.py` 会校验正则和成员混用约束，运行核验检查空组保护。
 - **不要用 load-balance**：同一网站多出口 IP 会触发风控；池内节点挂掉时被分到它的站点全部失败，直到下次健康检查。
 - **可选 Smart 内核**：OpenClash「Smart 设置」开启后会把所有 url-test/load-balance 组（本配置只有 ♻️ 自动选择、
   🧊 冷门自动）替换为 smart 组；fallback 组不受影响。
 
 ## 路由器侧（OpenClash 0.47.156 / iStoreOS）
 
-本 ini 只覆盖**策略组**；OpenClash 自身还会改写一部分参数。踩过的坑记在这里，避免重复取证。
+本 ini 覆盖规则和策略组；OpenClash 自身还会改写一部分参数。踩过的坑记在这里，避免重复取证。
+
+### 严格 AI 与持久化策略（2026-11-12）
+
+本节描述 `192.168.100.1` 已部署的全量版 `sum-air.yaml`。精简模板及配套脚本已在本地同步，
+尚未部署到小路由器，安装差异见下方「低内存路由器」。
+
+- AI、ChatGPT 的批准出口链为 VPS → 新加坡 → 日本 → 美国。机场节点来自现有三地区池，
+  同地区仍优先专线；不允许 HK、TW、其他地区、全节点手动、Default 或 DIRECT。
+  节点按机场名称分类，名称和探针成功本身不证明真实出口地区或 AI 解锁。
+- 自建 VPS 白名单由 ini 的 `🏠 自建 VPS` 精确正则定义，当前为 `^CF-WS-443$`，
+  多节点可写 `^(?:CF-WS-443|CF-WS-2)$`。网关只从顶层 `proxies` 导入 VPS，拒绝
+  provider 同名注入、非代理类型及带 `dialer-proxy` 的 VPS。
+  VPS 缺失或失败后可尝试 SG / JP / US；全部失败不降级直连。
+- 覆写验证三地区组的层级和过滤规则，运行核验继续检查区域池中的节点名称，
+  避免通过中间组重新引入其他地区或 DIRECT。它不代替对机场真实出口的验证。
+- 已识别的 AI 域名规则前置，所有配置策略组设置 `empty-fallback: REJECT`。
+  限制作用于进入 mihomo 且被 AI 规则识别的连接，并非设备级防火墙隔离；
+  未收录域名、客户端自行绕过网关、无法识别的裸 IP 不在此保证范围内。
+- `category-game-platforms-download` 使用「游戏下载」，默认 DIRECT。
+  fast.com 显式使用 Netflix，避免页面和测试服务器选择不同策略；其他测速工具独立选择。
+- 覆写钩子每次启动/配置更新都应用本地副本 `my-routering-policy.ini` 中的 AI 和下载策略，
+  因而远程 GitHub 模板尚未更新也不会撤销这几项保护。其余规则仍来自订阅转换结果。
+  修改这些策略后需要重新部署本地副本；不要只编辑生成的 YAML。
+- 钩子自动启动一次有 60 秒等待上限的只读核验，输出 `/tmp/openclash-policy-audit.log`。
+  核验不会测速、重启或清除选择；无效 `fixed`、空组等告警需要人工判断。
+  节点健康从 `/providers/proxies` 读取，缺失状态按 unknown 处理，不能把组级失败等同全池失败。
+
+测试及部署（部署前备份已有脚本和配置）：
+
+```sh
+ruby tools/test_openclash_policy.rb
+scp router/openclash_policy.rb router/openclash_custom_overwrite.sh root@192.168.100.1:/etc/openclash/custom/
+scp openclash-rules.ini root@192.168.100.1:/etc/openclash/custom/my-routering-policy.ini
+ssh root@192.168.100.1 'ruby /etc/openclash/custom/openclash_policy.rb audit /etc/openclash/sum-air.yaml /etc/openclash/custom/my-routering-policy.ini'
+```
+
+上传文件本身不会重新加载当前连接；应先校验候选 YAML，再通过 OpenClash 重载或内核配置 API 加载。
+AI 配置生效后核验菜单、实际出口及旧连接；其他应用的有效手动选择不应批量清除。
 
 ### 1. 「覆写设置」三项必须留空（=0）
 
@@ -111,9 +156,9 @@ ssh root@192.168.100.1 'chmod +x /etc/openclash/custom/openclash_custom_overwrit
 
 ```sh
 A="Authorization: Bearer <secret>"; C=http://192.168.100.1:9090
-# 各 provider 节点数与「最近一次失败」数
+# 各 provider 节点数与已记录的「最近一次失败」数（无历史不是失败）
 curl -s -H "$A" $C/providers/proxies | jq '.providers | to_entries[] | select(.value.vehicleType=="HTTP")
-  | [.key, (.value.proxies|length), ([.value.proxies[]|select(((.history|last|.delay)//0)==0)]|length)]'
+  | [.key, (.value.proxies|length), ([.value.proxies[]|select((.history|length)>0 and (.history|last|.delay)==0)]|length)]'
 # 用指定 URL 强制复测某组全部成员（会刷新节点状态，可把 fallback 从死节点上挪开）
 G=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=""))' '🇹🇼 TW 全部')
 curl -s -H "$A" "$C/group/$G/delay?timeout=8000&url=https%3A%2F%2Fcp.cloudflare.com%2Fgenerate_204"
@@ -127,6 +172,65 @@ curl -s -H "$A" "$C/group/$G/delay?timeout=8000&url=https%3A%2F%2Fcp.cloudflare.
 - `Provider_B10CBD`（`nvenix.shop` 订阅）长期拉到 0 个节点，日志报 `net/http: TLS handshake timeout`。
 - `🇹🇼 TW 专线` 整池（如 `IEPL 台湾-01 | x1`，服务器 `twdx1.cdnflow.help:9378`）曾整段时间全部超时，
   组级 fallback 会自动落到 `🇹🇼 TW 全部`；这类问题只能等机场修或手动换地区。
+
+## 低内存路由器
+
+`openclash-rules-small.ini` 当前为 **60 条规则、43 个策略组、21 个 GEOSITE 分类**。
+规则条数多于全量版，是因为 Telegram 用静态 CIDR 替代 GEOIP 分类，不意味着内存更多。
+已同步 AI 的 VPS → SG → JP → US、游戏下载切换、Steam 代理例外及 Adobe 移除；
+不恢复广告、GFW、Netflix、TikTok、Spotify 分类及特殊 GEOIP。
+fast.com 与主要测速域名 `nflxvideo.net` 共用「漏网之鱼」，无需 Netflix 分类。
+`91.108.8.0/21` 和 `91.108.16.0/21` 不能合并为一个对齐的 `/20`，现已分开。
+
+### 配套安装
+
+以下文件仅完成本地同步，尚未在 Cudy 上测试或部署。不要直接覆盖另一台设备原有的自定义钩子，
+先备份并合并其中的设备特有设置；也不要把大网关的控制器 IP、MTU、provider 改名逻辑复制过去。
+
+1. 确认小路由器内核支持 `empty-fallback`，转换配置采用 `proxy-providers` + `use/filter` 模式。
+2. 将 `router/openclash_policy.rb` 放到 `/etc/openclash/custom/openclash_policy.rb`。
+3. 将精简 ini 放到 `/etc/openclash/custom/my-routering-small.ini`，订阅转换也使用精简模板。
+4. 合并/安装 `router/openclash_small_overwrite.sh` 为 `/etc/openclash/custom/openclash_custom_overwrite.sh`。
+5. 校验候选 YAML 后重载，再执行核验；把命令里的路径替换成实际生效配置。
+
+```sh
+# 本地回归测试，不接触路由器
+ruby tools/test_openclash_policy.rb
+ruby tools/test_openclash_policy.rb openclash-rules-small.ini
+
+# 在小路由器上，启动稳定后按实际路径执行
+ruby /etc/openclash/custom/openclash_policy.rb audit-small \
+  /etc/openclash/实际配置名.yaml /etc/openclash/custom/my-routering-small.ini
+```
+
+小路由器钩子会设置 `geodata-mode: false`、`geodata-loader: memconservative`、
+`find-process-mode: off`、`profile.store-selected: false`（内核自行更新 geo 时再强制
+`geo-update-interval: 168`，更新窗口新旧两份 geosite.dat 并存是内存峰值时刻）、
+`empty-fallback: REJECT`，关闭 provider 级批量健康检查，并应用 AI/下载/测速策略。
+KR/PH 在低内存版不拆「专线/全部」嵌套，各为单地区组（正则同全量版，冷门池约束不变）。
+若发现输入配置重新加入被删掉的大分类或非 `cn` 的 GEOIP，会拒绝加载候选配置，避免误用全量模板。
+仅修改 ini 不会自动获得这些运行时设置。VPS 不存在时它的子组 REJECT，AI 可继续尝试批准地区。
+小路由器默认不在启动时并行运行 Ruby 核验，保留手动核验以降低启动峰值。
+
+### 进一步优化
+
+- **先减少实际订阅节点数量。** 优先在机场端筛选需要的地区/线路，少导入几个完整订阅。
+  仅给策略组加 `filter`，通常不会删除 provider 已经解析的其他节点，不能当成等量节省内存。
+  不要只看节点名称就过滤所有含 `Direct/CDN` 的条目，之前已观察到其中存在可用节点。
+- **最大的域名集合仍是 `cn`。** 本地缓存中它约 11.1 万条，仅供判断量级，并非当前设备实测。
+  下一阶段可考虑将大型域名集合改为 Mihomo 的 MRS rule-provider，并核查 OpenClash
+  的 `oc-cn-domain`/Fake-IP 过滤是否重复承载类似数据；需先确认内核、转换后端及 DNS 策略兼容性。
+  不直接删除 `GEOSITE,cn`，否则部分国内域名可能落到代理，改变现有分流。
+- **控制更新与检测峰值。** 避免订阅、Geo 数据更新和全节点测速同时进行；
+  保留现有 600 秒组级检测，不为追求更快切换盲目缩短间隔。内存紧张时可关闭不用的订阅/地区，
+  但同步调整引用和冷门池正则；单删几个菜单组通常不如减少节点和大型数据集有效。
+- **运行方式也会影响内存。** 若实际使用 gVisor，可比较 system 栈的占用和兼容性，
+  但切换前需测试 UDP、游戏和 Tailscale。不要未经测量就设置很低的 `GOMEMLIMIT`，
+  它不等于进程 RSS 硬上限，过低会增加 GC 压力。
+
+验收应覆盖冷启动、订阅更新、Geo 更新和实际高负载，记录 `/proc/<PID>/status` 的
+`VmRSS/VmHWM`、`/proc/meminfo` 的 `MemAvailable` 及 OOM 日志。
+旧注释中的 150–220MB 只是历史估算，本次未在低内存硬件上测量，不作为内存承诺。
 
 ## 与 Clash 版的对应关系 / 差异
 
@@ -151,11 +255,13 @@ curl -s -H "$A" "$C/group/$G/delay?timeout=8000&url=https%3A%2F%2Fcp.cloudflare.
   取 ini 中非 select 组的众数（现在是 `https://cp.cloudflare.com/generate_204` 与 10000ms，即 `600,10` 里的 10 秒）。
   注意 QX 只有**一个**全局测速地址，所以 Clash 里「AI 组保留 gstatic」的例外在 QX 无法表达。
 - fallback 地区组对应 `available`，但 QX 按订阅顺序选第一个可用节点，**无法做到“专线优先”**。
-- QX 的 `available` 不能嵌套策略组，所以 🔐 AI 稳定、🌐 Default 在 QX 里是 static（默认 US / HK），
-  地区内仍会自动换节点，但跨地区兜底需要手动切。🏠 自建 VPS 在 QX 里排在 AI 稳定的最后
-  （手机上可能没导入 VPS，空策略不能当默认）；手机上要走 VPS 就手动选它。
+- QX 的 `available` 不能嵌套策略组，所以 🌐 Default 在 QX 里是 static（默认 HK），跨地区兜底需手动切。
+  🔐 AI 稳定在 QX 中也为 static，菜单仅 VPS / SG / JP / US，默认 VPS；
+  手机没有导入 `CF-WS-443` 时需手动选择批准地区，无法自动跨地区回退。
+  QX 仅按节点标签过滤，不具备网关上 VPS「只取顶层节点」的附加保护；
+  此次部署不更新手机，生成文件仅做同步，手机端行为仍须单独验证。
 - 🧊 冷门节点 / 🧊 冷门自动 的负向正则必须等于 7 个地区组正则的并集，专线正则也必须和本组地区正则一致；
-  🏠 自建 VPS 的前缀（`^CF-WS`）必须在 🧊 冷门组里用 `(?!.*CF-WS)` 排除；♻️ 自动选择只引用 7 个地区组，天然不含 VPS。
+  🏠 自建 VPS 使用精确名称；其 `CF-WS` 前缀仍在 🧊 冷门组里用 `(?!.*CF-WS)` 排除；♻️ 自动选择只引用 7 个地区组。
   `qx_gen.py` 每次生成都会校验，不同步直接报错并列出差异。
 - 🛑 广告拦截（`GEOSITE,category-ads-all`，默认 reject）排在国内直连之前，会一并拦掉国内 App 的广告/统计域名
   （如 `app-measurement.com`、穿山甲、广点通）。某个 App 异常时先把该组切到 direct 排查。
@@ -166,7 +272,23 @@ curl -s -H "$A" "$C/group/$G/delay?timeout=8000&url=https%3A%2F%2Fcp.cloudflare.
 python3 tools/qx_gen.py --refresh   # 拉最新 geo 数据并生成 + 自校验（有 qx-subscriptions.local 时同时生成 private 版）
 python3 tools/qx_lint.py            # 语法、策略引用、远程列表可用性、节点正则检查
 python3 tools/qx_lint.py quantumultx.private.conf --offline
+python3 tools/verge_gen.py          # 重新生成 Clash Verge 扩展配置
 ```
+
+## Clash Verge（桌面）
+
+`clash-verge.yaml` 是 **Merge 全局扩展配置**，不是完整配置：节点来自你在 Verge 里导入的订阅。
+用法：订阅作主 profile，在「订阅右键 → 编辑 Merge」（或全局扩展配置）里粘贴本文件内容，
+或用 URL 导入本仓库 raw 地址。桌面端内存充足，规则与 `openclash-rules.ini` 全量版一致（含广告/gfw/Netflix）。
+
+与路由器管线的差异（详见 `tools/verge_gen.py` 头注）：
+
+- 正则组改为 mihomo 原生 `include-all: true` + `filter`（Verge 的节点是内联 proxies，无 provider 限制）。
+- `🏠 自建 VPS` 附带 REJECT 兜底成员：订阅里没有 `CF-WS-443` 时该组探活失败，
+  AI 链自动跳过它，不会像 COMPATIBLE 那样退化成直连。
+- 规则以 `prepend-rules` 前置并以自己的 MATCH 结尾，订阅自带规则永不生效。
+- `exclude_remarks` 无法在此表达：含「流量/到期」的信息节点会出现在 🧭 手动选择 里（过滤组不受影响）。
+
 
 ## 防泄露
 

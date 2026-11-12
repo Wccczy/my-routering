@@ -10,6 +10,7 @@ if [ -n "$hits" ]; then
   exit 1
 fi
 # also refuse secret-bearing files even if force-added
-if git diff --cached --name-only | grep -E '(^|/)(qx-subscriptions\.local|quantumultx\.private\.conf)$|\.ya?ml$|\.bak$' ; then
+# clash-verge.yaml 例外：仓库生成的 Merge 扩展配置，只有规则/组名（与 .gitignore 例外同步）
+if git diff --cached --name-only | grep -vE '^clash-verge\.yaml$' | grep -E '(^|/)(qx-subscriptions\.local|quantumultx\.private\.conf)$|\.ya?ml$|\.bak$' ; then
   echo "pre-commit: 以上文件不应提交（可能含订阅/节点信息）" >&2; exit 1
 fi

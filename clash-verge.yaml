@@ -1,0 +1,549 @@
+# Clash Verge (Rev) 全局扩展配置 —— 由 tools/verge_gen.py 从 openclash-rules.ini 生成,勿手改。
+# 用法:Verge 里订阅作主 profile,本文件通过「订阅右键 → 编辑 Merge」或全局扩展配置接入。
+# 桌面端内存充足,使用全量规则(含广告/gfw/Netflix);低内存版不适用本文件。
+# 节点来自订阅本身:VPS 节点(CF-WS-443)需要在订阅里存在,缺失时 AI 链自动跳过它(见脚本头注)。
+
+prepend-rules:
+  - DOMAIN,gemini.google.com,🧠 AI
+  - DOMAIN,aistudio.google.com,🧠 AI
+  - DOMAIN-SUFFIX,generativelanguage.googleapis.com,🧠 AI
+  - DOMAIN-SUFFIX,ai.google.dev,🧠 AI
+  - DOMAIN,sydney.bing.com,🧠 AI
+  - GEOSITE,openai,🤖 ChatGPT
+  - GEOSITE,category-ai-!cn,🧠 AI
+  - GEOSITE,private,DIRECT
+  - GEOIP,private,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,tailscale.com,DIRECT
+  - DOMAIN-SUFFIX,ts.net,DIRECT
+  - DST-PORT,3478,DIRECT
+  - DST-PORT,41641,DIRECT
+  - SRC-PORT,41641,DIRECT
+  - IP-CIDR,192.73.240.0/24,DIRECT,no-resolve
+  - IP-CIDR,205.147.104.0/22,DIRECT,no-resolve
+  - IP-CIDR,208.83.234.0/24,DIRECT,no-resolve
+  - IP-CIDR,199.38.181.0/24,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,wccczy.online,DIRECT
+  - IP-CIDR,8.148.145.218/32,DIRECT,no-resolve
+  - GEOSITE,category-ads-all,🛑 广告拦截
+  - GEOSITE,google-cn,DIRECT
+  - GEOSITE,category-games@cn,DIRECT
+  - GEOSITE,category-game-platforms-download,📥 游戏下载
+  - GEOSITE,category-public-tracker,DIRECT
+  - GEOSITE,cn,DIRECT
+  - GEOIP,cn,DIRECT,no-resolve
+  - GEOSITE,telegram,📨 Telegram
+  - GEOIP,telegram,📨 Telegram,no-resolve
+  - GEOSITE,apple,🍎 Apple
+  - DOMAIN,fast.com,🎥 Netflix
+  - GEOSITE,category-speedtest,🚝 测速工具
+  - GEOSITE,youtube,🎬 YouTube
+  - GEOSITE,netflix,🎥 Netflix
+  - GEOIP,netflix,🎥 Netflix,no-resolve
+  - GEOSITE,tiktok,🎵 TikTok
+  - GEOSITE,spotify,🎧 Spotify
+  - GEOSITE,instagram,📸 Instagram
+  - GEOSITE,twitter,🐦 X
+  - GEOIP,twitter,🐦 X,no-resolve
+  - DOMAIN-SUFFIX,steamcommunity.com,🚀 代理兜底
+  - DOMAIN-SUFFIX,api.steampowered.com,🚀 代理兜底
+  - DOMAIN-SUFFIX,store.steampowered.com,🚀 代理兜底
+  - DOMAIN-SUFFIX,steamstatic.com,🚀 代理兜底
+  - GEOSITE,steam,🎮 Steam
+  - GEOSITE,category-communication,📞 即时通讯
+  - GEOSITE,category-social-media-!cn,💬 社交媒体
+  - GEOIP,facebook,💬 社交媒体,no-resolve
+  - GEOSITE,cloudflare,☁️ cloudflare
+  - DOMAIN-KEYWORD,cathaypacific,✈️ Cathay Pacific
+  - GEOSITE,github,🧑‍💻 GitHub
+  - GEOSITE,google,🔎 Google
+  - GEOIP,google,🔎 Google,no-resolve
+  - GEOSITE,microsoft,🪟 Microsoft
+  - GEOSITE,gfw,🚀 代理兜底
+  - MATCH,🐟 漏网之鱼
+
+proxy-groups:
+  - name: "🤖 ChatGPT"
+    type: select
+    proxies:
+      - "🔐 AI 稳定"
+      - "REJECT"
+  - name: "🧠 AI"
+    type: select
+    proxies:
+      - "🔐 AI 稳定"
+      - "REJECT"
+  - name: "🔎 Google"
+    type: select
+    proxies:
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "♻️ 自动选择"
+      - "🌐 Default"
+  - name: "🎬 YouTube"
+    type: select
+    proxies:
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "♻️ 自动选择"
+      - "🌐 Default"
+  - name: "🐦 X"
+    type: select
+    proxies:
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "♻️ 自动选择"
+      - "🌐 Default"
+  - name: "📸 Instagram"
+    type: select
+    proxies:
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "♻️ 自动选择"
+      - "🌐 Default"
+  - name: "🎵 TikTok"
+    type: select
+    proxies:
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇹🇼 TW"
+      - "🇭🇰 HK"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "♻️ 自动选择"
+      - "🌐 Default"
+  - name: "🧑‍💻 GitHub"
+    type: select
+    proxies:
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "♻️ 自动选择"
+      - "🌐 Default"
+  - name: "🍎 Apple"
+    type: select
+    proxies:
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "♻️ 自动选择"
+      - "DIRECT"
+      - "🌐 Default"
+  - name: "📨 Telegram"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "📞 即时通讯"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "💬 社交媒体"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "🎥 Netflix"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "🎧 Spotify"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "☁️ cloudflare"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "✈️ Cathay Pacific"
+    type: select
+    proxies:
+      - "🇸🇬 SG"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "DIRECT"
+      - "🌐 Default"
+  - name: "📥 游戏下载"
+    type: select
+    proxies:
+      - "DIRECT"
+      - "♻️ 自动选择"
+      - "🧭 手动选择"
+      - "🇭🇰 HK"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+  - name: "🚝 测速工具"
+    type: select
+    proxies:
+      - "DIRECT"
+      - "♻️ 自动选择"
+      - "🧊 冷门自动"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "🎮 Steam"
+    type: select
+    proxies:
+      - "DIRECT"
+      - "♻️ 自动选择"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "🪟 Microsoft"
+    type: select
+    proxies:
+      - "DIRECT"
+      - "♻️ 自动选择"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🌐 Default"
+  - name: "🛑 广告拦截"
+    type: select
+    proxies:
+      - "REJECT"
+      - "DIRECT"
+  - name: "🚀 代理兜底"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🌐 Default"
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "DIRECT"
+  - name: "🐟 漏网之鱼"
+    type: select
+    proxies:
+      - "♻️ 自动选择"
+      - "🌐 Default"
+      - "DIRECT"
+      - "🧊 冷门节点"
+      - "🧭 手动选择"
+      - "🚀 代理兜底"
+  - name: "🔐 AI 稳定"
+    type: fallback
+    proxies:
+      - "🏠 自建 VPS"
+      - "🇸🇬 SG"
+      - "🇯🇵 JP"
+      - "🇺🇸 US"
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+  - name: "🌐 Default"
+    type: fallback
+    proxies:
+      - "🇭🇰 HK"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇹🇼 TW"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+      - "🧊 冷门自动"
+      - "🧭 手动选择"
+      - "DIRECT"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🏠 自建 VPS"
+    type: fallback
+    proxies:
+      - "REJECT"
+    include-all: true
+    filter: '^CF-WS-443$'
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+  - name: "🧭 手动选择"
+    type: select
+    include-all: true
+    filter: '.*'
+  - name: "♻️ 自动选择"
+    type: url-test
+    proxies:
+      - "🇭🇰 HK"
+      - "🇹🇼 TW"
+      - "🇯🇵 JP"
+      - "🇸🇬 SG"
+      - "🇺🇸 US"
+      - "🇰🇷 KR"
+      - "🇵🇭 PH"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+    tolerance: 300
+  - name: "🇭🇰 HK"
+    type: fallback
+    proxies:
+      - "🇭🇰 HK 专线"
+      - "🇭🇰 HK 全部"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇭🇰 HK 专线"
+    type: fallback
+    include-all: true
+    filter: '(?i)^(?=.*(IEPL|IPLC|专线|Premium))(?=.*(🇭🇰|香港|\bHK\b|\bHKG\b|hong\s*kong|hongkong))'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇭🇰 HK 全部"
+    type: fallback
+    include-all: true
+    filter: '(?i)(🇭🇰|香港|\bHK\b|\bHKG\b|hong\s*kong|hongkong)'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇹🇼 TW"
+    type: fallback
+    proxies:
+      - "🇹🇼 TW 专线"
+      - "🇹🇼 TW 全部"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇹🇼 TW 专线"
+    type: fallback
+    include-all: true
+    filter: '(?i)^(?=.*(IEPL|IPLC|专线|Premium))(?=.*(🇹🇼|台湾|\bTW\b|\bTWN\b|taiwan|taipei|hinet))'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇹🇼 TW 全部"
+    type: fallback
+    include-all: true
+    filter: '(?i)(🇹🇼|台湾|\bTW\b|\bTWN\b|taiwan|taipei|hinet)'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇯🇵 JP"
+    type: fallback
+    proxies:
+      - "🇯🇵 JP 专线"
+      - "🇯🇵 JP 全部"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇯🇵 JP 专线"
+    type: fallback
+    include-all: true
+    filter: '(?i)^(?=.*(IEPL|IPLC|专线|Premium))(?=.*(🇯🇵|日本|\bJP\b|\bJPN\b|\bTYO\b|\bNRT\b|\bHND\b|\bKIX\b|tokyo|osaka))'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇯🇵 JP 全部"
+    type: fallback
+    include-all: true
+    filter: '(?i)(🇯🇵|日本|\bJP\b|\bJPN\b|\bTYO\b|\bNRT\b|\bHND\b|\bKIX\b|tokyo|osaka)'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇸🇬 SG"
+    type: fallback
+    proxies:
+      - "🇸🇬 SG 专线"
+      - "🇸🇬 SG 全部"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇸🇬 SG 专线"
+    type: fallback
+    include-all: true
+    filter: '(?i)^(?=.*(IEPL|IPLC|专线|Premium))(?=.*(🇸🇬|新加坡|\bSG\b|\bSGP\b|\bSIN\b|singapore))'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇸🇬 SG 全部"
+    type: fallback
+    include-all: true
+    filter: '(?i)(🇸🇬|新加坡|\bSG\b|\bSGP\b|\bSIN\b|singapore)'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇺🇸 US"
+    type: fallback
+    proxies:
+      - "🇺🇸 US 专线"
+      - "🇺🇸 US 全部"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇺🇸 US 专线"
+    type: fallback
+    include-all: true
+    filter: '(?i)^(?=.*(IEPL|IPLC|专线|Premium))(?=.*(🇺🇸|美国|\bUS\b|\bUSA\b|united\s*states|los\s*angeles|san\s*jose|seattle|new\s*york|\bLAX\b|\bSFO\b|\bSJC\b|\bSEA\b|\bNYC\b))'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇺🇸 US 全部"
+    type: fallback
+    include-all: true
+    filter: '(?i)(🇺🇸|美国|\bUS\b|\bUSA\b|united\s*states|los\s*angeles|san\s*jose|seattle|new\s*york|\bLAX\b|\bSFO\b|\bSJC\b|\bSEA\b|\bNYC\b)'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇰🇷 KR"
+    type: fallback
+    proxies:
+      - "🇰🇷 KR 专线"
+      - "🇰🇷 KR 全部"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇰🇷 KR 专线"
+    type: fallback
+    include-all: true
+    filter: '(?i)^(?=.*(IEPL|IPLC|专线|Premium))(?=.*(🇰🇷|韩国|韓国|韩國|\bKR\b|\bKOR\b|korea|seoul|首尔|春川|\bICN\b))'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇰🇷 KR 全部"
+    type: fallback
+    include-all: true
+    filter: '(?i)(🇰🇷|韩国|韓国|韩國|\bKR\b|\bKOR\b|korea|seoul|首尔|春川|\bICN\b)'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇵🇭 PH"
+    type: fallback
+    proxies:
+      - "🇵🇭 PH 专线"
+      - "🇵🇭 PH 全部"
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇵🇭 PH 专线"
+    type: fallback
+    include-all: true
+    filter: '(?i)^(?=.*(IEPL|IPLC|专线|Premium))(?=.*(🇵🇭|菲律宾|菲律賓|\bPH\b|\bPHL\b|philippines|manila|马尼拉))'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🇵🇭 PH 全部"
+    type: fallback
+    include-all: true
+    filter: '(?i)(🇵🇭|菲律宾|菲律賓|\bPH\b|\bPHL\b|philippines|manila|马尼拉)'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+  - name: "🧊 冷门节点"
+    type: select
+    include-all: true
+    filter: '(?i)^(?!.*CF-WS)(?!.*(🇭🇰|香港|\bHK\b|\bHKG\b|hong\s*kong|hongkong|🇯🇵|日本|\bJP\b|\bJPN\b|\bTYO\b|\bNRT\b|\bHND\b|\bKIX\b|tokyo|osaka|🇹🇼|台湾|\bTW\b|\bTWN\b|taiwan|taipei|hinet|🇸🇬|新加坡|\bSG\b|\bSGP\b|\bSIN\b|singapore|🇺🇸|美国|\bUS\b|\bUSA\b|united\s*states|los\s*angeles|san\s*jose|seattle|new\s*york|\bLAX\b|\bSFO\b|\bSJC\b|\bSEA\b|\bNYC\b|🇰🇷|韩国|韓国|韩國|\bKR\b|\bKOR\b|korea|seoul|首尔|春川|\bICN\b|🇵🇭|菲律宾|菲律賓|\bPH\b|\bPHL\b|philippines|manila|马尼拉)).*'
+  - name: "🧊 冷门自动"
+    type: url-test
+    include-all: true
+    filter: '(?i)^(?!.*CF-WS)(?!.*(🇭🇰|香港|\bHK\b|\bHKG\b|hong\s*kong|hongkong|🇯🇵|日本|\bJP\b|\bJPN\b|\bTYO\b|\bNRT\b|\bHND\b|\bKIX\b|tokyo|osaka|🇹🇼|台湾|\bTW\b|\bTWN\b|taiwan|taipei|hinet|🇸🇬|新加坡|\bSG\b|\bSGP\b|\bSIN\b|singapore|🇺🇸|美国|\bUS\b|\bUSA\b|united\s*states|los\s*angeles|san\s*jose|seattle|new\s*york|\bLAX\b|\bSFO\b|\bSJC\b|\bSEA\b|\bNYC\b|🇰🇷|韩国|韓国|韩國|\bKR\b|\bKOR\b|korea|seoul|首尔|春川|\bICN\b|🇵🇭|菲律宾|菲律賓|\bPH\b|\bPHL\b|philippines|manila|马尼拉)).*'
+    url: https://cp.cloudflare.com/generate_204
+    interval: 600
+    tolerance: 300
